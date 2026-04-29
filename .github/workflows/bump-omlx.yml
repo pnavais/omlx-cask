@@ -1,0 +1,108 @@
+name: Bump omlx cask
+
+on:
+  schedule:
+    - cron: '0 6 * * *' # daily at 06:00 UTC
+  workflow_dispatch: {}
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Gather latest release metadata
+        id: release
+        run: |
+          set -euo pipefail
+          API="https://api.github.com/repos/jundot/omlx/releases/latest"
+          echo "Fetching $API"
+          resp=$(curl -sL "$API")
+          tag=$(echo "$resp" | jq -r '.tag_name')
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+          # Find Tahoe and Sequoia assets (if present)
+          tahoe_url=$(echo "$resp" | jq -r '.assets[] | select(.name|test("tahoe\\.dmg$";"i")) | .browser_download_url' | head -n1)
+          tahoe_digest=$(echo "$resp" | jq -r '.assets[] | select(.name|test("tahoe\\.dmg$";"i")) | .digest' | head -n1)
+          sequoia_url=$(echo "$resp" | jq -r '.assets[] | select(.name|test("sequoia\\.dmg$";"i")) | .browser_download_url' | head -n1)
+          sequoia_digest=$(echo "$resp" | jq -r '.assets[] | select(.name|test("sequoia\\.dmg$";"i")) | .digest' | head -n1)
+
+          # Strip sha256: prefix if present
+          if [ -n "$tahoe_digest" ] && [ "$tahoe_digest" != "null" ]; then tahoe_sha=${tahoe_digest#sha256:}; else tahoe_sha=""; fi
+          if [ -n "$sequoia_digest" ] && [ "$sequoia_digest" != "null" ]; then sequoia_sha=${sequoia_digest#sha256:}; else sequoia_sha=""; fi
+
+          echo "tahoe_url=$tahoe_url" >> "$GITHUB_OUTPUT"
+          echo "tahoe_sha=$tahoe_sha" >> "$GITHUB_OUTPUT"
+          echo "sequoia_url=$sequoia_url" >> "$GITHUB_OUTPUT"
+          echo "sequoia_sha=$sequoia_sha" >> "$GITHUB_OUTPUT"
+
+      - name: Update cask file
+        id: update
+        run: |
+          set -euo pipefail
+          TAG=${{ steps.release.outputs.tag }}
+          TAHOE_URL=${{ steps.release.outputs.tahoe_url }}
+          TAHOE_SHA=${{ steps.release.outputs.tahoe_sha }}
+          SEQ_URL=${{ steps.release.outputs.sequoia_url }}
+          SEQ_SHA=${{ steps.release.outputs.sequoia_sha }}
+
+          CASK="Casks/omlx.rb"
+          if [ ! -f "$CASK" ]; then echo "Cask not found: $CASK"; exit 1; fi
+
+          echo "Current tag: $TAG"
+
+          python3 - "$CASK" "$TAG" "$TAHOE_URL" "$TAHOE_SHA" "$SEQ_URL" "$SEQ_SHA" <<'PY'
+import sys, re, pathlib
+cask_path = pathlib.Path(sys.argv[1])
+tag = sys.argv[2]
+tahoe_url = sys.argv[3]
+tahoe_sha = sys.argv[4]
+seq_url = sys.argv[5]
+seq_sha = sys.argv[6]
+
+text = cask_path.read_text()
+# Update version
+text = re.sub(r"version \"[^"]+\"", f"version \"{tag}\"", text)
+
+# Replace tahoe block url and sha if present
+if tahoe_url and tahoe_url != 'null' and tahoe_sha and tahoe_sha != '':
+    text = re.sub(r'(if MacOS.version.to_s.start_with\?\("26"\)\n\s*sha256 \")([^"]+)("\n\s*url \")([^"]+)("\n)',
+                  lambda m: m.group(1) + tahoe_sha + m.group(3) + tahoe_url + m.group(5),
+                  text)
+
+# Replace sequoia block url and sha
+if seq_url and seq_url != 'null' and seq_sha and seq_sha != '':
+    text = re.sub(r'(else\n\s*sha256 \")([^"]+)("\n\s*url \")([^"]+)("\n)',
+                  lambda m: m.group(1) + seq_sha + m.group(3) + seq_url + m.group(5),
+                  text)
+
+cask_path.write_text(text)
+print('Updated cask')
+PY
+
+          git add "$CASK"
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+            echo "changed=false" >> $GITHUB_OUTPUT
+          else
+            git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -m "omlx: bump to ${TAG}\n\nCo-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>"
+            echo "changed=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create Pull Request
+        if: steps.update.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "omlx: bump to ${{ steps.release.outputs.tag }}\n\nCo-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>"
+          title: "omlx: bump to ${{ steps.release.outputs.tag }}"
+          body: |
+            Automated cask update for omlx.
+
+            This PR updates the cask to the latest upstream release and updates asset URLs and sha256 sums for both Tahoe and Sequoia DMG assets.
+          base: main
+          branch: "bump-omlx-${{ steps.release.outputs.tag }}"
+          labels: automated
