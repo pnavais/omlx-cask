@@ -65,7 +65,7 @@ jobs:
           
           text = cask_path.read_text()
           # Update version
-          text = re.sub(r"version \"[^"]+\"", f"version \"{tag}\"", text)
+          text = re.sub(r'version "[^\"]+"', f'version "{tag}"', text)
           
           # Replace tahoe block url and sha if present
           if tahoe_url and tahoe_url != 'null' and tahoe_sha and tahoe_sha != '':
