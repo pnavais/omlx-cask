@@ -65,6 +65,8 @@ jobs:
           import sys, re, pathlib
           cask_path = pathlib.Path(sys.argv[1])
           tag = sys.argv[2]
+          # Normalize tag for cask version (strip leading 'v' if present)
+          tag_for_version = tag[1:] if tag.startswith('v') else tag
           tahoe_url = sys.argv[3]
           tahoe_sha = sys.argv[4]
           seq_url = sys.argv[5]
@@ -72,7 +74,7 @@ jobs:
           
           text = cask_path.read_text()
           # Update version
-          text = re.sub(r'version "[^\"]+"', f'version "{tag}"', text)
+          text = re.sub(r'version "[^\"]+"', f'version "{tag_for_version}"', text)
           
           # Replace tahoe block url and sha if present
           if tahoe_url and tahoe_url != 'null' and tahoe_sha and tahoe_sha != '':
