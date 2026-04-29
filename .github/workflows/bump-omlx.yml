@@ -55,33 +55,33 @@ jobs:
           echo "Current tag: $TAG"
 
           python3 - "$CASK" "$TAG" "$TAHOE_URL" "$TAHOE_SHA" "$SEQ_URL" "$SEQ_SHA" <<'PY'
-import sys, re, pathlib
-cask_path = pathlib.Path(sys.argv[1])
-tag = sys.argv[2]
-tahoe_url = sys.argv[3]
-tahoe_sha = sys.argv[4]
-seq_url = sys.argv[5]
-seq_sha = sys.argv[6]
-
-text = cask_path.read_text()
-# Update version
-text = re.sub(r"version \"[^"]+\"", f"version \"{tag}\"", text)
-
-# Replace tahoe block url and sha if present
-if tahoe_url and tahoe_url != 'null' and tahoe_sha and tahoe_sha != '':
-    text = re.sub(r'(if MacOS.version.to_s.start_with\?\("26"\)\n\s*sha256 \")([^"]+)("\n\s*url \")([^"]+)("\n)',
+          import sys, re, pathlib
+          cask_path = pathlib.Path(sys.argv[1])
+          tag = sys.argv[2]
+          tahoe_url = sys.argv[3]
+          tahoe_sha = sys.argv[4]
+          seq_url = sys.argv[5]
+          seq_sha = sys.argv[6]
+          
+          text = cask_path.read_text()
+          # Update version
+          text = re.sub(r"version \"[^"]+\"", f"version \"{tag}\"", text)
+          
+          # Replace tahoe block url and sha if present
+          if tahoe_url and tahoe_url != 'null' and tahoe_sha and tahoe_sha != '':
+              text = re.sub(r'(if MacOS.version.to_s.start_with\?\("26"\)\n\s*sha256 \")([^"]+)("\n\s*url \")([^"]+)("\n)',
                   lambda m: m.group(1) + tahoe_sha + m.group(3) + tahoe_url + m.group(5),
                   text)
-
-# Replace sequoia block url and sha
-if seq_url and seq_url != 'null' and seq_sha and seq_sha != '':
-    text = re.sub(r'(else\n\s*sha256 \")([^"]+)("\n\s*url \")([^"]+)("\n)',
+          
+          # Replace sequoia block url and sha
+          if seq_url and seq_url != 'null' and seq_sha and seq_sha != '':
+              text = re.sub(r'(else\n\s*sha256 \")([^"]+)("\n\s*url \")([^"]+)("\n)',
                   lambda m: m.group(1) + seq_sha + m.group(3) + seq_url + m.group(5),
                   text)
-
-cask_path.write_text(text)
-print('Updated cask')
-PY
+          
+          cask_path.write_text(text)
+          print('Updated cask')
+          PY
 
           git add "$CASK"
           if git diff --staged --quiet; then
