@@ -1,4 +1,4 @@
-cask "omlx" do
+cask "omlx-app" do
   version "0.3.9"
 
   # Choose the correct DMG for the host macOS (Sequoia vs Tahoe)
