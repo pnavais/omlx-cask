@@ -56,7 +56,7 @@ jobs:
           SEQ_URL=${{ steps.release.outputs.sequoia_url }}
           SEQ_SHA=${{ steps.release.outputs.sequoia_sha }}
 
-          CASK="Casks/omlx-cask.rb"
+          CASK="Casks/omlx-app.rb"
           if [ ! -f "$CASK" ]; then echo "Cask not found: $CASK"; exit 1; fi
 
           echo "Current tag: $TAG"
