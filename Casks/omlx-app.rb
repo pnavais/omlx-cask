@@ -1,13 +1,13 @@
 cask "omlx-app" do
-  version "0.3.12"
+  version "0.4.0"
 
   # Choose the correct DMG for the host macOS (Sequoia vs Tahoe)
   if MacOS.version.to_s.start_with?("26")
-    sha256 "1da02c1353725329a0f44d40b440bcc78d3ccfa51e3818cdc7cd2504c4176c94"
-    url "https://github.com/jundot/omlx/releases/download/v0.3.12/oMLX-0.3.12-macos26-tahoe.dmg"
+    sha256 "9d49344877063bd1ba30288f2c45015fa9dd2c8db7f55d37b1f92882cdf4105c"
+    url "https://github.com/jundot/omlx/releases/download/v0.4.0/oMLX-0.4.0-macos26-tahoe.dmg"
   else
-    sha256 "d1b48db37c745fb672cfe6ebb805a59586f90b037c63ece52973b7f040700a8e"
-    url "https://github.com/jundot/omlx/releases/download/v0.3.12/oMLX-0.3.12-macos15-sequoia.dmg"
+    sha256 "a04e24d83b8092932ea73c1ecc3856a95862572b245a2ab629e8a4429d18e832"
+    url "https://github.com/jundot/omlx/releases/download/v0.4.0/oMLX-0.4.0-macos15-sequoia.dmg"
   end
 
   name "oMLX"
