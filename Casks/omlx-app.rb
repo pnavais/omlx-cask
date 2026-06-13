@@ -22,5 +22,5 @@ cask "omlx-app" do
     "~/Library/Logs/oMLX",
   ]
 
-  depends_on macos: ">= :sequoia"
+  depends_on macos: :sequoia
 end
