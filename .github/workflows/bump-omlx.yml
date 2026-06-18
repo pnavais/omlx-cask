@@ -32,10 +32,12 @@ jobs:
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
 
           # Find Tahoe and Sequoia assets (if present)
-          tahoe_url=$(echo "$resp" | jq -r '.assets[] | select(.name|test("tahoe\\.dmg$";"i")) | .browser_download_url' | head -n1)
-          tahoe_digest=$(echo "$resp" | jq -r '.assets[] | select(.name|test("tahoe\\.dmg$";"i")) | .digest' | head -n1)
-          sequoia_url=$(echo "$resp" | jq -r '.assets[] | select(.name|test("sequoia\\.dmg$";"i")) | .browser_download_url' | head -n1)
-          sequoia_digest=$(echo "$resp" | jq -r '.assets[] | select(.name|test("sequoia\\.dmg$";"i")) | .digest' | head -n1)
+          # Tahoe assets used to include "tahoe" in the filename, but now use names like
+          # "...-macos26-27.dmg". Match macos26* for Tahoe. Sequoia still includes "sequoia" in the name.
+          tahoe_url=$(echo "$resp" | jq -r '.assets[] | select(.name|test("macos26.*\\\\.dmg$";"i")) | .browser_download_url' | head -n1)
+          tahoe_digest=$(echo "$resp" | jq -r '.assets[] | select(.name|test("macos26.*\\\\.dmg$";"i")) | .digest' | head -n1)
+          sequoia_url=$(echo "$resp" | jq -r '.assets[] | select(.name|test("sequoia.*\\\\.dmg$";"i")) | .browser_download_url' | head -n1)
+          sequoia_digest=$(echo "$resp" | jq -r '.assets[] | select(.name|test("sequoia.*\\\\.dmg$";"i")) | .digest' | head -n1)
 
           # Strip sha256: prefix if present
           if [ -n "$tahoe_digest" ] && [ "$tahoe_digest" != "null" ]; then tahoe_sha=${tahoe_digest#sha256:}; else tahoe_sha=""; fi
@@ -74,11 +76,11 @@ jobs:
           
           text = cask_path.read_text()
           # Update version
-          text = re.sub(r'version "[^\"]+"', f'version "{tag_for_version}"', text)
+          text = re.sub(r'version \"[^\"]+\"', f'version \"{tag_for_version}\"', text)
           
           # Replace tahoe block url and sha if present
           if tahoe_url and tahoe_url != 'null' and tahoe_sha and tahoe_sha != '':
-              text = re.sub(r'(if MacOS.version.to_s.start_with\?\("26"\)\n\s*sha256 \")([^"]+)("\n\s*url \")([^"]+)("\n)',
+              text = re.sub(r'(if MacOS.version.to_s.start_with\?\(\"26\"\)\n\s*sha256 \")([^"]+)("\n\s*url \")([^"]+)("\n)',
                   lambda m: m.group(1) + tahoe_sha + m.group(3) + tahoe_url + m.group(5),
                   text)
           
