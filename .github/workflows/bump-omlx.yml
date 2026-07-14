@@ -28,16 +28,14 @@ jobs:
           API="https://api.github.com/repos/jundot/omlx/releases/latest"
           echo "Fetching $API"
           resp=$(curl -sL "$API")
-          tag=$(echo "$resp" | jq -r '.tag_name')
+          tag=$(jq -r '.tag_name' <<< "$resp")
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
 
-          # Find Tahoe and Sequoia assets (if present)
-          # Tahoe assets used to include "tahoe" in the filename, but now use names like
-          # "...-macos26-27.dmg". Match macos26* for Tahoe. Sequoia still includes "sequoia" in the name.
-          tahoe_url=$(echo "$resp" | jq -r '.assets[] | select(.name|test("macos26.*\\\\.dmg$";"i")) | .browser_download_url' | head -n1)
-          tahoe_digest=$(echo "$resp" | jq -r '.assets[] | select(.name|test("macos26.*\\\\.dmg$";"i")) | .digest' | head -n1)
-          sequoia_url=$(echo "$resp" | jq -r '.assets[] | select(.name|test("sequoia.*\\\\.dmg$";"i")) | .browser_download_url' | head -n1)
-          sequoia_digest=$(echo "$resp" | jq -r '.assets[] | select(.name|test("sequoia.*\\\\.dmg$";"i")) | .digest' | head -n1)
+          # DMG assets: oMLX-<ver>-macos26-27.dmg (Tahoe) and oMLX-<ver>-macos15-sequoia.dmg (Sequoia)
+          tahoe_url=$(jq -r '.assets[] | select(.name | endswith(".dmg")) | select(.name | contains("-macos26-")) | .browser_download_url' <<< "$resp" | head -n1)
+          tahoe_digest=$(jq -r '.assets[] | select(.name | endswith(".dmg")) | select(.name | contains("-macos26-")) | .digest' <<< "$resp" | head -n1)
+          sequoia_url=$(jq -r '.assets[] | select(.name | endswith(".dmg")) | select(.name | contains("-macos15-sequoia")) | .browser_download_url' <<< "$resp" | head -n1)
+          sequoia_digest=$(jq -r '.assets[] | select(.name | endswith(".dmg")) | select(.name | contains("-macos15-sequoia")) | .digest' <<< "$resp" | head -n1)
 
           # Strip sha256: prefix if present
           if [ -n "$tahoe_digest" ] && [ "$tahoe_digest" != "null" ]; then tahoe_sha=${tahoe_digest#sha256:}; else tahoe_sha=""; fi
