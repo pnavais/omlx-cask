@@ -1,5 +1,5 @@
 cask "omlx-app" do
-  version "0.5.1"
+  version "0.5.2rc2"
 
   # Choose the correct DMG for the host macOS (Sequoia vs Tahoe)
   if MacOS.version.to_s.start_with?("26")
